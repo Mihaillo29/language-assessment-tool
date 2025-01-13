@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <!-- [Previous head content remains the same] -->
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paragraph Reading Practice</title>
+    <style>
+        /* [Previous styles remain the same] */
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .hidden {
+            display: none;
+        }
+        #recordButton {
+            padding: 10px 20px;
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #recordButton.recording {
+            background-color: #cc0000;
+        }
+        #liveTranscription {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+            min-height: 50px;
+        }
+        .recording-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background-color: red;
+            border-radius: 50%;
+            margin-left: 10px;
+            animation: blink 1s infinite;
+        }
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    
+    <h1>Paragraph Reading Practice</h1>
+    
+    <div class="section" style="font-family: Arial, sans-serif; padding: 20px; background-color: #f4f4f9; border-radius: 8px; box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);">
+        <h2>Step 1: Generate a Paragraph</h2>
+        <input type="text" id="topic" placeholder="Enter a topic   Ex:'Gym','Education'...." style="width: 100%; padding: 12px; font-size: 16px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 10px; box-sizing: border-box;">
+        <button onclick="generateParagraph()" style="background-color: #af4c4c; color: white; padding: 12px 20px; font-size: 16px; border: none; border-radius: 4px; cursor: pointer; width: 100%; box-sizing: border-box; margin-bottom: 20px;">Generate</button>
+        <div id="paragraphDisplay" class="hidden">
+            <h3>Generated Paragraph:</h3>
+            <p id="generatedParagraph"></p>
+        </div>
+    </div>
+    
+
+    <div class="section hidden" id="recordingSection">
+        <h2>Step 2: Record Your Reading</h2>
+        <p>Press the button and read the paragraph above:</p>
+        <button id="recordButton">Start Recording</button>
+        <div id="recordingStatus" class="hidden">
+            Recording in progress <span class="recording-indicator"></span>
+        </div>
+        <div id="liveTranscription" class="hidden">
+            <strong>Live Transcription:</strong>
+            <p id="liveText"></p>
+        </div>
+        <div id="finalTranscription" class="hidden">
+            <strong>Final Transcription:</strong>
+            <p id="finalText"></p>
+        </div>
+    </div>
+
+    <div class="section hidden" id="resultSection">
+        <h2>Step 3: Results</h2>
+        <div>
+            <h3>Score: <span id="score"></span>/5</h3>
+            <h3>Feedback:</h3>
+            <p id="feedback"></p>
+        </div>
+    </div>
+
+    <script>
+        let isRecording = false;
+let generatedParagraph = '';
+let completeTranscription = '';
+let recognition;
+
+// Initialize speech recognition
+if ('webkitSpeechRecognition' in window) {
+    recognition = new webkitSpeechRecognition();
+    recognition.continuous = true;
+    recognition.interimResults = true;
+
+    recognition.onresult = function(event) {
+        let interimTranscript = '';
+        let finalTranscript = '';
+
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+                finalTranscript += transcript + ' ';
+                completeTranscription += transcript + ' ';
+            } else {
+                interimTranscript += transcript;
+            }
+        }
+
+        // Update live display
+        document.getElementById('liveText').innerHTML = 
+            completeTranscription + '<i style="color: #666;">' + interimTranscript + '</i>';
+        
+        // Update final text display
+        document.getElementById('finalText').textContent = completeTranscription;
+    };
+
+    recognition.onend = function() {
+        if (isRecording) {
+            recognition.start();
+        }
+    };
+
+    recognition.onerror = function(event) {
+        console.error('Speech recognition error:', event.error);
+        if (isRecording) {
+            recognition.start();
+        }
+    };
+}
+
+async function generateParagraph() {
+    const topic = document.getElementById('topic').value;
+    if (!topic) {
+        alert('Please enter a topic');
+        return;
+    }
+
+    try {
+        const response = await fetch('/generate', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+            },
+            body: `topic=${encodeURIComponent(topic)}`
+        });
+
+        const data = await response.json();
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+
+        // Store the generated paragraph in the global variable
+        generatedParagraph = data.paragraph;
+        document.getElementById('generatedParagraph').textContent = generatedParagraph;
+        document.getElementById('paragraphDisplay').classList.remove('hidden');
+        document.getElementById('recordingSection').classList.remove('hidden');
+    } catch (error) {
+        alert('Error generating paragraph');
+        console.error(error);
+    }
+}
+
+async function evaluateTranscription() {
+    // Add validation checks
+    if (!generatedParagraph || !completeTranscription) {
+        console.error('Missing data:', {
+            generatedParagraph: !!generatedParagraph,
+            completeTranscription: !!completeTranscription
+        });
+        alert('Please ensure you have generated a paragraph and recorded some text');
+        return;
+    }
+
+    try {
+        const response = await fetch('/evaluatereading', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                paragraph: generatedParagraph.trim(),
+                transcription: completeTranscription.trim()
+            })
+        });
+
+        const data = await response.json();
+        if (data.error) {
+            alert(data.error);
+            return;
+        }
+
+        document.getElementById('score').textContent = data.score;
+        document.getElementById('feedback').textContent = data.feedback;
+        document.getElementById('resultSection').classList.remove('hidden');
+    } catch (error) {
+        alert('Error evaluating transcription');
+        console.error(error);
+    }
+}
+
+// Modified record button event listener
+document.getElementById('recordButton').addEventListener('click', () => {
+    if (!isRecording) {
+        if (!generatedParagraph) {
+            alert('Please generate a paragraph first');
+            return;
+        }
+        // Start recording
+        completeTranscription = ''; // Reset transcription
+        recognition.start();
+        isRecording = true;
+        document.getElementById('recordButton').textContent = 'Stop Recording';
+        document.getElementById('recordButton').classList.add('recording');
+        document.getElementById('liveTranscription').classList.remove('hidden');
+        document.getElementById('finalTranscription').classList.remove('hidden');
+        document.getElementById('recordingStatus').classList.remove('hidden');
+        document.getElementById('liveText').textContent = '';
+        document.getElementById('finalText').textContent = '';
+        document.getElementById('resultSection').classList.add('hidden');
+    } else {
+        // Stop recording
+        recognition.stop();
+        isRecording = false;
+        document.getElementById('recordButton').textContent = 'Start Recording';
+        document.getElementById('recordButton').classList.remove('recording');
+        document.getElementById('recordingStatus').classList.add('hidden');
+        
+        // Add a small delay to ensure the final transcription is complete
+        setTimeout(() => {
+            document.getElementById('finalText').textContent = completeTranscription.trim();
+            evaluateTranscription();
+        }, 500);
+    }
+});
+    </script>
+    
+</body>
+</html>

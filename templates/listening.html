@@ -1,0 +1,255 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Speech Assessment</title>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .section {
+            margin-bottom: 30px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .hidden { display: none; }
+        #recordButton {
+            padding: 10px 20px;
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #recordButton.recording { background-color: #cc0000; }
+        #liveTranscription {
+            margin-top: 15px;
+            padding: 10px;
+            background-color: #f5f5f5;
+            border-radius: 5px;
+            min-height: 50px;
+        }
+        .recording-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            background-color: red;
+            border-radius: 50%;
+            margin-left: 10px;
+            animation: blink 1s infinite;
+        }
+        .timer {
+            font-size: 2em;
+            text-align: center;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+        #startButton {
+            display: block;
+            margin: 20px auto;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        @keyframes blink {
+            0% { opacity: 1; }
+            50% { opacity: 0; }
+            100% { opacity: 1; }
+        }
+    </style>
+</head>
+<body>
+    <h1>Speech Assessment</h1>
+    
+    <div id="assessment-info">
+        <h2 id="attempt-counter"></h2>
+        <div id="timer" class="timer"></div>
+    </div>
+
+    <button id="startButton" onclick="startAssessment()">Start Assessment</button>
+
+    <div id="paragraphDisplay" class="section hidden">
+        <h3>Generated Paragraph:</h3>
+        <p id="generatedParagraph"></p>
+        <audio id="paragraphAudio" style="display: none;"></audio>
+    </div>
+
+    <div class="section hidden" id="recordingSection">
+        <h2>Recording Section</h2>
+        <button id="recordButton">Start Recording</button>
+        <div id="recordingStatus" class="hidden">
+            Recording in progress <span class="recording-indicator"></span>
+        </div>
+        <div id="liveTranscription" class="hidden">
+            <strong>Live Transcription:</strong>
+            <p id="liveText"></p>
+        </div>
+        <div id="finalTranscription" class="hidden">
+            <strong>Final Transcription:</strong>
+            <p id="finalText"></p>
+        </div>
+    </div>
+
+    <script>
+        let isRecording = false;
+        let generatedParagraph = '';
+        let completeTranscription = '';
+        let currentAttempt = 0;
+        let recognition;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            showDisclaimer().then((result) => {
+                if (result.isConfirmed) {
+                    document.getElementById('startButton').classList.remove('hidden');
+                }
+            });
+
+            if ('webkitSpeechRecognition' in window) {
+                recognition = new webkitSpeechRecognition();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+
+                recognition.onresult = function(event) {
+                    let interimTranscript = '';
+                    let finalTranscript = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript + ' ';
+                            completeTranscription += transcript + ' ';
+                        } else {
+                            interimTranscript += transcript;
+                        }
+                    }
+
+                    document.getElementById('liveText').innerHTML = 
+                        completeTranscription + '<i style="color: #666;">' + interimTranscript + '</i>';
+                    document.getElementById('finalText').textContent = completeTranscription;
+                };
+
+                recognition.onend = function() {
+                    if (isRecording) {
+                        recognition.start();
+                    }
+                };
+
+                recognition.onerror = function(event) {
+                    console.error('Speech recognition error:', event.error);
+                };
+            }
+        });
+
+        function showDisclaimer() {
+            return Swal.fire({
+                title: 'Speech Assessment',
+                html: 'You will complete 5 speaking tasks. For each task:<br>' +
+                      '1. Wait for the 5-second countdown<br>' +
+                      '2. Listen to the audio prompt<br>' +
+                      '3. Repeat what you hear<br>' +
+                      '4. Assessment will automatically move to the next task',
+                confirmButtonText: 'Start Assessment'
+            });
+        }
+
+        function startTimer() {
+            return new Promise(resolve => {
+                let seconds = 5;
+                document.getElementById('timer').textContent = seconds;
+                
+                const timer = setInterval(() => {
+                    seconds--;
+                    document.getElementById('timer').textContent = seconds;
+                    if (seconds <= 0) {
+                        clearInterval(timer);
+                        resolve();
+                    }
+                }, 1000);
+            });
+        }
+
+        async function startAssessment() {
+            document.getElementById('startButton').classList.add('hidden');
+            const response = await fetch('/start-assessment', { method: 'POST' });
+            const data = await response.json();
+            displayTask(data);
+        }
+
+        async function displayTask(data) {
+            currentAttempt = data.attempt;
+            document.getElementById('attempt-counter').textContent = `Task ${data.attempt} of 5`;
+            document.getElementById('generatedParagraph').textContent = data.paragraph;
+            document.getElementById('paragraphAudio').src = data.audio_url;
+            document.getElementById('paragraphDisplay').classList.remove('hidden');
+            document.getElementById('recordingSection').classList.remove('hidden');
+            
+            await startTimer();
+            document.getElementById('paragraphAudio').play();
+        }
+
+        document.getElementById('recordButton').addEventListener('click', () => {
+            if (!isRecording) {
+                completeTranscription = '';
+                recognition.start();
+                isRecording = true;
+                document.getElementById('recordButton').textContent = 'Stop Recording';
+                document.getElementById('recordButton').classList.add('recording');
+                document.getElementById('liveTranscription').classList.remove('hidden');
+                document.getElementById('finalTranscription').classList.remove('hidden');
+                document.getElementById('recordingStatus').classList.remove('hidden');
+                document.getElementById('liveText').textContent = '';
+                document.getElementById('finalText').textContent = '';
+            } else {
+                recognition.stop();
+                isRecording = false;
+                document.getElementById('recordButton').textContent = 'Start Recording';
+                document.getElementById('recordButton').classList.remove('recording');
+                document.getElementById('recordingStatus').classList.add('hidden');
+
+                fetch('/evaluatelistening', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        transcription: completeTranscription.trim()
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.complete) {
+                        showFinalResults(data);
+                    } else {
+                        fetch('/next-task', { method: 'POST' })
+                            .then(response => response.json())
+                            .then(taskData => {
+                                displayTask(taskData);
+                            });
+                    }
+                });
+            }
+        });
+
+        function showFinalResults(data) {
+            Swal.fire({
+                title: 'Assessment Complete',
+                html: `Final Score: ${data.final_score}/5<br><br>` +
+                      `Overall Feedback:<br>${data.feedbacks.join('<br>')}`,
+                confirmButtonText: 'Done'
+            }).then(() => {
+                window.location.reload();
+            });
+        }
+    </script>
+</body>
+</html>

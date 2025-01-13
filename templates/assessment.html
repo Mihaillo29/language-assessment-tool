@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>English Assessment</title>
+    <style>
+        /* General Body Styling */
+        body {
+            font-family: 'Roboto', sans-serif;
+            margin: 0;
+            padding: 0;
+            background: linear-gradient(to bottom, #e8f8ff, #f9f9f9);
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* Header Styling */
+        h1 {
+            margin: 30px 0;
+            color: #1a73e8;
+            font-size: 2.5em;
+        }
+
+        /* Container for the Cards */
+        .container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 25px;
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 10px;
+        }
+
+        /* Individual Card Styling */
+        .card {
+            background-color: white;
+            border-radius: 15px;
+            box-shadow: 0 6px 12px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            width: 320px;
+            text-align: center;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Decorative Icon or Image */
+        .card-icon {
+            font-size: 50px;
+            color: #1a73e8;
+            margin-bottom: 15px;
+        }
+
+        /* Card Title */
+        .card h2 {
+            margin-bottom: 10px;
+            font-size: 1.5em;
+            color: #1a73e8;
+        }
+
+        /* Description Text */
+        .card p {
+            margin-bottom: 20px;
+            font-size: 1em;
+            color: #555;
+        }
+
+        /* Call-to-Action Button */
+        .card a {
+            display: inline-block;
+            text-decoration: none;
+            background: #1a73e8;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 25px;
+            font-size: 1em;
+            transition: background 0.3s ease, transform 0.3s ease;
+        }
+
+        .card a:hover {
+            background: #155db5;
+            transform: scale(1.05);
+        }
+    </style>
+</head>
+<body>
+    <h1>English Assessment</h1>
+    <div class="container">
+        <!-- Reading Assessment Card -->
+        <div class="card">
+            <div class="card-icon">📖</div>
+            <h2>Reading Assessment</h2>
+            <p>Challenge your ability to understand and analyze written content through engaging passages.</p>
+            <a href="/reading">Start Reading Test</a>
+        </div>
+
+        <!-- Listening Assessment Card -->
+        <div class="card">
+            <div class="card-icon">🎧</div>
+            <h2>Listening Assessment</h2>
+            <p>Improve your comprehension of spoken English with realistic audio exercises.</p>
+            <a href="/listening">Start Listening Test</a>
+        </div>
+
+        <!-- Writing Assessment Card -->
+        <div class="card">
+            <div class="card-icon">✍️</div>
+            <h2>Writing Assessment</h2>
+            <p>Enhance your writing skills by crafting thoughtful responses to provided prompts.</p>
+            <a href="/writing">Start Writing Test</a>
+        </div>
+    </div>
+</body>
+</html>

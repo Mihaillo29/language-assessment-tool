@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>250-Word Essay Assessment</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        .container {
+            background-color: #f9f9f9;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        #topic {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin: 20px 0;
+        }
+        #wordCount {
+            color: #666;
+            margin-top: 10px;
+        }
+        .word-limit-reached {
+            color: #dc3545;
+            font-weight: bold;
+        }
+        textarea {
+            width: 100%;
+            height: 300px;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+            line-height: 1.5;
+        }
+        button {
+            background-color: #2c3e50;
+            color: white;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .result {
+            margin-top: 20px;
+            padding: 20px;
+            border-radius: 4px;
+        }
+        .score {
+            font-size: 1.5em;
+            font-weight: bold;
+            color: #2c3e50;
+            margin-bottom: 10px;
+        }
+        .feedback {
+            background-color: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 4px solid #2c3e50;
+        }
+        .error {
+            color: #dc3545;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>250-Word Essay Assessment</h1>
+        <button id="getTopicBtn">Get New Topic</button>
+        <div id="topic">Click "Get New Topic" to start</div>
+        <textarea id="essay" placeholder="Write your 250-word essay here..."></textarea>
+        <div id="wordCount">Words: 0</div>
+        <button id="submitBtn" disabled>Submit Essay</button>
+        <div id="error" class="error"></div>
+        <div id="result" class="result" style="display: none;">
+            <div class="score">Score: <span id="scoreValue"></span>/5</div>
+            <div class="feedback" id="feedbackText"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentTopic = '';
+
+        document.getElementById('getTopicBtn').addEventListener('click', async () => {
+            try {
+                const response = await fetch('/get_topic');
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+                
+                currentTopic = data.topic;
+                document.getElementById('topic').textContent = currentTopic;
+                document.getElementById('essay').value = '';
+                document.getElementById('result').style.display = 'none';
+                updateWordCount();
+            } catch (error) {
+                document.getElementById('error').textContent = `Error: ${error.message}`;
+            }
+        });
+
+        document.getElementById('essay').addEventListener('input', function(e) {
+            const words = this.value.trim().split(/\s+/).filter(word => word.length > 0);
+            if (words.length > 250) {
+                // Get the text up to the last word that doesn't exceed the limit
+                const truncatedWords = words.slice(0, 250);
+                this.value = truncatedWords.join(' ');
+                document.getElementById('wordCount').className = 'word-limit-reached';
+            } else {
+                document.getElementById('wordCount').className = '';
+            }
+            updateWordCount();
+        });
+
+        function updateWordCount() {
+            const essay = document.getElementById('essay').value;
+            const wordCount = essay.trim().split(/\s+/).filter(word => word.length > 0).length;
+            document.getElementById('wordCount').textContent = `Words: ${wordCount}/250`;
+            document.getElementById('submitBtn').disabled = wordCount < 200 || !currentTopic;
+            
+            if (wordCount >= 250) {
+                document.getElementById('wordCount').textContent += " (Limit reached)";
+            }
+        }
+
+        document.getElementById('submitBtn').addEventListener('click', async () => {
+            const essay = document.getElementById('essay').value;
+            document.getElementById('error').textContent = '';
+            document.getElementById('result').style.display = 'none';
+
+            try {
+                const response = await fetch('/evaluatewriting', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        essay: essay,
+                        topic: currentTopic
+                    })
+                });
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+
+                document.getElementById('result').style.display = 'block';
+                document.getElementById('scoreValue').textContent = data.score;
+                document.getElementById('feedbackText').textContent = data.feedback;
+            } catch (error) {
+                document.getElementById('error').textContent = `Error: ${error.message}`;
+            }
+        });
+    </script>
+</body>
+</html>
