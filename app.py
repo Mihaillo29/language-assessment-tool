@@ -11,7 +11,7 @@ AUDIO_DIR = os.path.join('static', 'audio')
 os.makedirs(AUDIO_DIR, exist_ok=True)
 TOPICS = ["Weather", "Family", "Technology", "Education", "Travel", "Food", "Sports", "Music"]
 MAX_ATTEMPTS = 5
-# Create prompt templates
+
 generation_prompt = ChatPromptTemplate.from_template("Generate a paragraph based on this topic: {topic}")
 feedback_prompt = ChatPromptTemplate.from_template("""
 Evaluate the following transcription accuracy:
@@ -21,7 +21,7 @@ Score: {score}/5
 
 Provide brief feedback about the accuracy of the transcription and pronunciation.
 """)
-#essay
+
 topic_prompt = ChatPromptTemplate.from_template(
     "Generate an interesting writing topic that would make for a good 250-word essay. "
     "The topic should be specific enough to be focused but broad enough to allow for development. "
@@ -56,7 +56,7 @@ Score: {score}/5
 Provide brief feedback about the accuracy of the transcription and pronunciation.
 """)
 
-# Function to generate a paragraph
+
 def generate_paragraph(topic):
     paragraph_chain = generation_prompt | model
     return paragraph_chain.invoke({"topic": topic})
