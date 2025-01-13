@@ -279,7 +279,7 @@ def cleanup_audio():
 
 @app.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('assessment.html')
 
 @app.route('/reading')
 def reading():
